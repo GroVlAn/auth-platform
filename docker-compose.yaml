@@ -1,0 +1,313 @@
+version: "3.9"
+
+services:
+  swagger:
+    container_name: "auth-swagger"
+    build: ./services/auth-open_api
+    ports:
+      - "8001:8001"
+    expose:
+      - "8001"
+    networks:
+      - auth-network
+    depends_on:
+      api-gateway:
+        condition: service_started
+
+  api-gateway:
+    container_name: "auth-api-gateway"
+    build: ./services/auth-api-gateway
+    ports:
+      - "9080:9080"
+      - "9010:9010"
+    expose:
+      - "9080"
+      - "9010"
+    networks:
+      - auth-network
+    environment:
+      VAULT_SECRET_TOKEN: ${VAULT_DEV_SECRET_TOKEN}
+      VAULT_ADDRESS: ${VAULT_DEV_ADDR}
+      VAULT_MOUNT: ${VAULT_MOUNT}
+      TOKEN_PATH: ${AUTH_TOKEN_PATH}
+    depends_on:
+      auth:
+        condition: service_started
+      user:
+        condition: service_started
+      access:
+        condition: service_started
+      vault:
+        condition: service_healthy
+      bootstrap-vault:
+        condition: service_completed_successfully
+
+  user:
+    container_name: "auth-user"
+    build: ./services/auth-user
+    ports:
+      - "9012:9012"
+    expose:
+      - "9082"
+      - "9012"
+    networks:
+      - auth-network
+    environment:
+      VAULT_SECRET_TOKEN: ${VAULT_DEV_SECRET_TOKEN}
+      VAULT_ADDRESS: ${VAULT_DEV_ADDR}
+      VAULT_MOUNT: ${VAULT_MOUNT}
+      POSTGRES_PATH: ${USER_POSTGRES_PATH}
+      HASHER_PATH: ${USER_HASHER_PATH}
+    depends_on:
+      user_db:
+        condition: service_healthy
+      migration_user:
+        condition: service_completed_successfully
+      access:
+        condition: service_started
+      vault:
+        condition: service_healthy
+      bootstrap-vault:
+        condition: service_completed_successfully
+
+  access:
+    container_name: "auth-access"
+    build: ./services/auth-access
+    ports:
+      - "9013:9013"
+    expose:
+      - "9083"
+      - "9013"
+    networks:
+      - auth-network
+    environment:
+      VAULT_SECRET_TOKEN: ${VAULT_DEV_SECRET_TOKEN}
+      VAULT_ADDRESS: ${VAULT_DEV_ADDR}
+      VAULT_MOUNT: ${VAULT_MOUNT}
+      POSTGRES_PATH: ${ACCESS_POSTGRES_PATH}
+    depends_on:
+      access_db:
+        condition: service_healthy
+      migration_access:
+        condition: service_completed_successfully
+      vault:
+        condition: service_healthy
+      bootstrap-vault:
+        condition: service_completed_successfully
+
+  auth:
+    container_name: "auth-auth"
+    build: ./services/auth-auth
+    ports:
+      - "9011:9011"
+    expose:
+      - "9081"
+      - "9011"
+    networks:
+      - auth-network
+    environment:
+      VAULT_SECRET_TOKEN: ${VAULT_DEV_SECRET_TOKEN}
+      VAULT_ADDRESS: ${VAULT_DEV_ADDR}
+      VAULT_MOUNT: ${VAULT_MOUNT}
+      TOKEN_PATH: ${AUTH_TOKEN_PATH}
+      REDIS_PATH: ${AUTH_REDIS_PATH}
+      HASHER_PATH: ${AUTH_HASHER_PATH}
+    depends_on:
+      redis:
+        condition: service_healthy
+      user:
+        condition: service_started
+      vault:
+        condition: service_healthy
+      bootstrap-vault:
+        condition: service_completed_successfully
+
+  user_db:
+    container_name: "auth-user-db"
+    image: postgres:17
+    command: -p 5433
+    environment:
+      POSTGRES_USER: ${DB_USER_USERNAME}
+      POSTGRES_PASSWORD: ${DB_USER_PASSWORD}
+      POSTGRES_DB: ${DB_USER_DB_NAME}
+      SSL_MODE: disable
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - ./database/local/database/auth_user:/var/lib/postgresql/data
+    ports:
+      - "5433:5433"
+    expose:
+      - "5433"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -p 5433 -U ${DB_USER_USERNAME} -d ${DB_USER_DB_NAME}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      auth-network:
+        aliases:
+          - user_db
+
+  access_db:
+    container_name: "auth-access-db"
+    image: postgres:17
+    command: -p 5435
+    environment:
+      POSTGRES_USER: ${DB_ACCESS_USERNAME}
+      POSTGRES_PASSWORD: ${DB_ACCESS_PASSWORD}
+      POSTGRES_DB: ${DB_ACCESS_DB_NAME}
+      SSL_MODE: disable
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - ./database/local/database/auth_access:/var/lib/postgresql/data
+    ports:
+      - "5435:5435"
+    expose:
+      - "5435"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -p 5435 -U ${DB_ACCESS_USERNAME} -d ${DB_ACCESS_DB_NAME}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      auth-network:
+        aliases:
+          - access_db
+
+  redis:
+    image: redis:latest
+    container_name: "auth-auth-redis"
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_USER=${REDIS_USER}
+      - REDIS_USER_PASSWORD=${REDIS_USER_PASSWORD}
+    ports:
+      - "6380:6379"
+    volumes:
+      - ./database/local/redis:/data
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    command: >
+      sh -c '
+        mkdir -p /usr/local/etc/redis &&
+        echo "bind 0.0.0.0" > /usr/local/etc/redis/redis.conf &&
+        echo "requirepass $REDIS_PASSWORD" >> /usr/local/etc/redis/redis.conf &&
+        echo "appendonly yes" >> /usr/local/etc/redis/redis.conf &&
+        echo "appendfsync everysec" >> /usr/local/etc/redis/redis.conf &&
+        echo "user default on nopass ~* +@all" > /usr/local/etc/redis/users.acl &&
+        echo "user $REDIS_USER on >$REDIS_USER_PASSWORD ~* +@all" >> /usr/local/etc/redis/users.acl &&
+        redis-server /usr/local/etc/redis/redis.conf --aclfile /usr/local/etc/redis/users.acl
+      '
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "$REDIS_PASSWORD", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+    tty: true
+    stdin_open: true
+    networks:
+      - auth-network
+
+  migration_user:
+    container_name: "migration_user"
+    image: migrate/migrate
+    volumes:
+      - ./services/auth-user/migrations:/migrations
+    environment:
+      POSTGRES_USER: ${DB_USER_USERNAME}
+      POSTGRES_PASSWORD: ${DB_USER_PASSWORD}
+      POSTGRES_DB: ${DB_USER_DB_NAME}
+    command:
+      - "-path=/migrations"
+      - "-database=postgres://${DB_USER_USERNAME}:${DB_USER_PASSWORD}@user_db:5433/${DB_USER_DB_NAME}?sslmode=disable"
+      - "up"
+    depends_on:
+      user_db:
+        condition: service_healthy
+    restart: on-failure
+    networks:
+      - auth-network
+
+  migration_access:
+    container_name: "migration_access"
+    image: migrate/migrate
+    volumes:
+      - ./services/auth-access/migrations:/migrations
+    environment:
+      POSTGRES_USER: ${DB_ACCESS_USERNAME}
+      POSTGRES_PASSWORD: ${DB_ACCESS_PASSWORD}
+      POSTGRES_DB: ${DB_ACCESS_DB_NAME}
+    command:
+      - "-path=/migrations"
+      - "-database=postgres://${DB_ACCESS_USERNAME}:${DB_ACCESS_PASSWORD}@access_db:5435/${DB_ACCESS_DB_NAME}?sslmode=disable"
+      - "up"
+    depends_on:
+      access_db:
+        condition: service_healthy
+    restart: on-failure
+    networks:
+      - auth-network
+
+  vault:
+    image: hashicorp/vault:1.20
+    container_name: auth-vault
+    restart: unless-stopped
+    ports:
+      - "8200:8200"
+    cap_add:
+      - IPC_LOCK
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_DEV_SECRET_TOKEN}
+      VAULT_DEV_LISTEN_ADDRESS: ${VAULT_DEV_LISTEN_ADDRESS}
+      VAULT_ADDR: ${VAULT_DEV_ADDR}
+      VAULT_ADDRESS: ${VAULT_DEV_LISTEN_ADDRESS}
+    command: server -dev
+    volumes:
+      - ./vault:/vault/file
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "vault status -address=http://127.0.0.1:8200 || test $$? -eq 2",
+        ]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+      start_period: 5s
+
+    networks:
+      - auth-network
+
+  bootstrap-vault:
+    image: hashicorp/vault:1.20
+    env_file:
+      - .env
+    depends_on:
+      vault:
+        condition: service_healthy
+    volumes:
+      - ./vault/init.sh:/init.sh
+    command: sh /init.sh
+    networks:
+      - auth-network
+
+networks:
+  auth-network:
+    driver: bridge

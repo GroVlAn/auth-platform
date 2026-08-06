@@ -1,0 +1,21 @@
+[submodule "services/auth-user"]
+	path = services/auth-user
+	url = git@github.com:GroVlAn/auth-user.git
+[submodule "services/auth-auth"]
+	path = services/auth-auth
+	url = git@github.com:GroVlAn/auth-auth.git
+[submodule "services/auth-access"]
+	path = services/auth-access
+	url = git@github.com:GroVlAn/auth-access.git
+[submodule "services/auth-api"]
+	path = services/auth-api
+	url = git@github.com:GroVlAn/auth-api.git
+[submodule "services/auth-api-gateway"]
+	path = services/auth-api-gateway
+	url = git@github.com:GroVlAn/auth-api-gateway.git
+[submodule "services/auth-base"]
+	path = services/auth-base
+	url = git@github.com:GroVlAn/auth-base.git
+[submodule "services/auth-open_api"]
+	path = services/auth-open_api
+	url = git@github.com:GroVlAn/auth-open_api.git
