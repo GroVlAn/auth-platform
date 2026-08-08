@@ -130,16 +130,16 @@ http://localhost:8001
 
 > **Login sequence diagram**
 
-![Architecture](architecture/login-sequence.png)
+![Login sequence](architecture/login-sequence.png)
 
 ## Authorization sequence
 
 > **Authorization sequence diagram**
 
-![Architecture](architecture/authorization-sequence.png)
+![Authorization sequence](architecture/authorization-sequence.png)
 
 ## Database schema
 
 > **Database schema diagram**
 
-![Architecture](architecture/database-schema.png)
+![Database schema](architecture/database-schema.png)
