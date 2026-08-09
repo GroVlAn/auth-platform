@@ -1,4 +1,4 @@
-#!/bin/sh
+AUTH_#!/bin/sh
 
 set -e
 
@@ -24,10 +24,10 @@ vault kv put secret/auth/tokens \
     token_access_end_ttl="$TOKEN_ACCESS_END_TTL"
 
 vault kv put secret/auth/redis \
-    host="$REDIS_HOST" \
-    addr="$REDIS_ADDR" \
-    password="$REDIS_PASSWORD" \
-    db="$REDIS_DB"
+    host="$AUTH_REDIS_HOST" \
+    addr="$AUTH_REDIS_ADDR" \
+    password="$AUTH_REDIS_PASSWORD" \
+    db="$AUTH_REDIS_DB"
 
 vault kv put secret/auth/hasher \
     time="$HASH_TIME" \
