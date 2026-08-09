@@ -16,6 +16,6 @@
 [submodule "services/auth-base"]
 	path = services/auth-base
 	url = git@github.com:GroVlAn/auth-base.git
-[submodule "services/auth-open_api"]
-	path = services/auth-open_api
-	url = git@github.com:GroVlAn/auth-open_api.git
+[submodule "services/auth-open-api"]
+	path = services/auth-open-api
+	url = git@github.com:GroVlAn/auth-open-api.git
