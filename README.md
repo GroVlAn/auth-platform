@@ -203,3 +203,11 @@ If you need to run migrations manually, you can use the `migrate` tool with the 
 > **Database schema diagram**
 
 ![Database schema](architecture/database-schema.png)
+
+## License
+
+This project is licensed under the MIT License – see the [LICENSE](LICENSE) file for details.
+
+You are free to use, modify, distribute, and sublicense the code for both commercial and non‑commercial purposes, provided that the original copyright notice and permission notice are included in all copies or substantial portions of the software.
+
+For more information, see the full [MIT License](https://opensource.org/licenses/MIT).
