@@ -39,7 +39,7 @@ Main goals of the project:
 | [auth-access](https://github.com/GroVlAn/auth-access/tree/26d8ba8184606c233b62a373b2d76d85f182f0a5)           | Roles and Permissions |
 | [auth-api](https://github.com/GroVlAn/auth-api/tree/f0aed1b91f2149de43ba4676e8602a3a17e00fad)                 | gRPC contracts        |
 | [auth-base](https://github.com/GroVlAn/auth-base/tree/e621964a91bfa2c9bcedfc3198d5e9164354ae79)               | Shared libraries      |
-| [auth-open_api](https://github.com/GroVlAn/auth-open_api/tree/87ccfbb172bfa1354d99942f198318046543196a)       | Swagger/OpenAPI       |
+| [auth-open-api](https://github.com/GroVlAn/auth-open-api/tree/87ccfbb172bfa1354d99942f198318046543196a)       | Swagger/OpenAPI       |
 
 ## Features
 
@@ -97,7 +97,7 @@ auth-platform
 │   ├── auth-access
 │   ├── auth-api
 │   ├── auth-base
-│   └── auth-open_api
+│   └── auth-open-api
 │
 ├── architecture
 │
